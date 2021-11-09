@@ -8,7 +8,7 @@ import math, random
 handlers = []
 
 def run(context):
-    ui = None
+    global app, ui
     try:
         app = adsk.core.Application.get()
         ui  = app.userInterface
@@ -17,21 +17,12 @@ def run(context):
         cmdDefs = ui.commandDefinitions
         
         # Create a button command definition
-        CustomRingsButton = cmdDefs.addButtonDefinition('CustomRingsButton', 
-                                                   'Custom Rings', 
-                                                   'Create rings in different layouts',
-                                                   '')
+        CustomRingsButton = ui.commandDefinitions.addButtonDefinition('customRingsAddIn', 'Custom Rings', 'Create rings in different orientation', '')        
+        createPanel = ui.allToolbarPanels.itemById('SolidCreatePanel')
+        gearButton = createPanel.controls.addCommand(CustomRingsButton)
         
-        workSpace = ui.workspaces.itemById('FusionSolidEnvironment')
-        tbPanels = workSpace.toolbarPanels
-        
-        # Add new panel
-        global tbPanel
-        tbPanel = tbPanels.itemById('Custom add-ins')
-        if tbPanel:
-            tbPanel.deleteMe()
-        tbPanel = tbPanels.add('CustomAddIn', 'Custom add-ins', 'SelectPanel', False)
-        tbPanel.controls.addCommand(CustomRingsButton)
+        if context['IsApplicationStartup'] == False:
+            ui.messageBox('The "Custom Rings" command has been added\nto the CREATE panel of the MODEL workspace.')
 
         # Connect to the command created event
         customRingsCommandCreated = CustomRingsCommandCreatedEventHandler()
@@ -319,22 +310,14 @@ def drawRings(n, isShifted, isStand, isCustomColor, red, green, blue):
 
 def stop(context):
     try:
-        app = adsk.core.Application.get()
-        ui  = app.userInterface
+        createPanel = ui.allToolbarPanels.itemById('SolidCreatePanel')
+        gearButton = createPanel.controls.itemById('adskSpurGearPythonAddIn')       
+        if gearButton:
+            gearButton.deleteMe()
         
-        # Clean up the UI.
-        cmdDef = ui.commandDefinitions.itemById('CustomRingsButton')
+        cmdDef = ui.commandDefinitions.itemById('adskSpurGearPythonAddIn')
         if cmdDef:
             cmdDef.deleteMe()
-            
-        addinsPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
-        cntrl = addinsPanel.controls.itemById('CustomRingsButton')
-        if cntrl:
-            cntrl.deleteMe()
-            
-        if tbPanel:
-            tbPanel.deleteMe()
-
     except:
         if ui:
-            ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))	
+            ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
