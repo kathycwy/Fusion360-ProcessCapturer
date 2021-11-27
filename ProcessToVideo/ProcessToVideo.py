@@ -9,9 +9,13 @@ handlers = []
 
 def run(context):
     try:
-        global app, ui
+        global app, ui, product, design, timeline_var
         app = adsk.core.Application.get()
         ui  = app.userInterface
+        product = app.activeProduct
+        design = adsk.fusion.Design.cast(product)
+        timeline_var = design.timeline
+
 
         # Get the CommandDefinitions collection
         cmdDefs = ui.commandDefinitions
@@ -48,10 +52,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         # Get the CommandInputs collection to create new command inputs          
         inputs = cmd.commandInputs
 
-        # Get user-defined n
-        durationN = inputs.addIntegerSpinnerCommandInput('durationN', 'Input n', 1, 10, 1, 1)
-
-        targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Target folder', '', 1, False)
+        # Get user input
+        targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
 
         # Connect to the execute event
         onExecute = CommandExecuteHandler()
@@ -69,15 +71,21 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         # Get the values from the command inputs 
         inputs = eventArgs.command.commandInputs
 
-        # Get the value of n
-        n = int(inputs.itemById('durationN').value)
-        targetFolder = str(inputs.itemById('targetFolder'))
-
-        # ui.messageBox("Save image to ", targetFolder)
+        # Get the user input
+        targetFolder = inputs.itemById('targetFolder').text
 
         # Save image
-        filename = os.path.join("/Users/wingyin/Downloads", "frame")
-        app.activeViewport.saveAsImageFile(filename, 0, 0)  
+        count = timeline_var.count
+        timeline_var.moveToBeginning()
+        while count>0 :
+            filename = os.path.join(targetFolder, "frame%s" % count)
+            returnValue = timeline_var.movetoNextStep()
+            app.activeViewport.saveAsImageFile(filename, 0, 0)  
+            count = count-1
+
+        # Display finish message
+        ui.messageBox(str(timeline_var.count) + ' images saved to [' + targetFolder + ']!')
+        
 
 
 def stop(context):
