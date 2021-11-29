@@ -52,7 +52,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         # Get the CommandInputs collection to create new command inputs          
         inputs = cmd.commandInputs
 
-        # Get user input
+        # Get user inputs
+        speed = inputs.addIntegerSpinnerCommandInput('speed', 'Speed', 1, 10, 1, 1)
         targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
 
         # Connect to the execute event
@@ -71,7 +72,8 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         # Get the values from the command inputs 
         inputs = eventArgs.command.commandInputs
 
-        # Get the user input
+        # Get the user inputs
+        speed = int(inputs.itemById('speed').value)
         targetFolder = inputs.itemById('targetFolder').text
 
         # Save image
@@ -84,7 +86,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             count = count-1
 
         # Display finish message
-        ui.messageBox(str(timeline_var.count) + ' images saved to [' + targetFolder + ']!')
+        ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video name.mp4 is saved to [' + targetFolder + '].')
         
 
 
