@@ -3,6 +3,9 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os
+import pip
+import subprocess
+import sys
 
 # Global list to keep all event handlers in scope
 handlers = []
@@ -78,17 +81,28 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
 
         # Save image
         count = timeline_var.count
+        filenames = []
         timeline_var.moveToBeginning()
         while count>0 :
             filename = os.path.join(targetFolder, "frame%s" % count)
+            filenames.append("%s.png" % filename)
             returnValue = timeline_var.movetoNextStep()
             app.activeViewport.saveAsImageFile(filename, 0, 0)  
             count = count-1
 
+        res = [f.replace('', '/') for f in filenames]
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "imageio"])  
+        import imageio
+        images = []
+       
+        for filename in filenames:
+            images.append(imageio.imread(filename))
+       
+        imageio.mimsave('%s/movie.gif' % targetFolder, images)
+       
         # Display finish message
         ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video name.mp4 is saved to [' + targetFolder + '].')
         
-
 
 def stop(context):
     try:
