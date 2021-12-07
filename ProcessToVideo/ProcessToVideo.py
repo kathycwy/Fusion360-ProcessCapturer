@@ -3,7 +3,6 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os
-import pip
 import subprocess
 import sys
 
@@ -83,15 +82,21 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         count = timeline_var.count
         filenames = []
         timeline_var.moveToBeginning()
-        while count>0 :
-            filename = os.path.join(targetFolder, "frame%s" % count)
+        timeline_names = "[Begin]->"
+        index = 1
+        while index <= count :
+            filename = os.path.join(targetFolder, "frame%s" % index)
             filenames.append("%s.png" % filename)
+            timeline_names += ''.join(i for i in timeline_var.item(index-1).name if not i.isdigit()) + "->"
             returnValue = timeline_var.movetoNextStep()
             app.activeViewport.saveAsImageFile(filename, 0, 0)  
-            count = count-1
+            index += 1
+        timeline_names += "[Finish]"
+
+        ui.messageBox(str(count) + ' operation(s):\n' + timeline_names)
 
         res = [f.replace('', '/') for f in filenames]
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "imageio"])  
+        subprocess.check_call([sys.executable, "pip", "install", "imageio"])  
         import imageio
         images = []
        
