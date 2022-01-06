@@ -7,6 +7,7 @@ import os,sys
 # import subprocess
 # import numpy as np
 # import glob
+import time
 
 #get the path of add-in
 my_addin_path = os.path.dirname(os.path.realpath(__file__)) 
@@ -33,7 +34,7 @@ def run(context):
         product = app.activeProduct
         design = adsk.fusion.Design.cast(product)
         timeline_var = design.timeline
-
+  
         # Get the CommandDefinitions collection
         cmdDefs = ui.commandDefinitions
         
@@ -70,18 +71,18 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         inputs = cmd.commandInputs
     
         operatingPlatform = getPlatform()
-       
+      
         #Define inputs for Windows
         if operatingPlatform == "Windows":
             filename = inputs.addStringValueInput('videoname', 'Video name')
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
-            rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
-            skip = inputs.addBoolValueInput('skip', 'Include all steps?', True, '')
-            background = inputs.addBoolValueInput('background', 'Add background?', True, '')
-            range = inputs.addIntegerSliderCommandInput('range', 'Timeline Range', 1, 100, True)
-            range_start = inputs.itemById('range').valueOne
-            range_end = inputs.itemById('range').valueTwo
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, '', False)
+            # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
+            skip = inputs.addBoolValueInput('skip', 'Skip steps?', True, '')
+            # background = inputs.addBoolValueInput('background', 'Add background?', True, '')
+            # range_start = inputs.addTextBoxCommandInput('range_start', 'Range start', '', 1, False)
+            # range_end = inputs.addTextBoxCommandInput('range_end', 'Range end', '', 1, False)
+
 
         #Define inputs for MacOS
         if operatingPlatform == "MacOS":
@@ -124,7 +125,6 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 else:
                     return
 
-
 # Event handler for the execute event
 class CommandExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -140,13 +140,13 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             videoname = inputs.itemById('videoname').value
             targetFolder = inputs.itemById('targetFolder').text
             ui.messageBox(targetFolder)
-            rotate = inputs.itemById('rotate').value
+            #rotate = inputs.itemById('rotate').value
             skip = inputs.itemById('skip').value
-            background = inputs.itemById('background').value
-            start = inputs.itemById('range').valueOne
-            end = inputs.itemById('range').valueTwo
+            # background = inputs.itemById('background').value
+            # start = inputs.itemById('range').valueOne
+            # end = inputs.itemById('range').valueTwo
 
-            # Save image
+            #Save image
             count = timeline_var.count + 1 
             timeline_var.moveToBeginning()
 
@@ -177,6 +177,19 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             # Display finish message
             ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
 
+            #Display video
+            cap = cv2.VideoCapture(name)
+            fps= int(cap.get(cv2.CAP_PROP_FPS))
+            while(True):
+                ret, frame = cap.read()
+                time.sleep(1/fps)
+                cv2.imshow('Frame', frame)
+                if cv2.waitKey(25) & 0xFF == ord('q'):
+                    break  
+            cap.release()
+            cv2.destroyAllWindows()
+
+          
         if operatingPlatform == "MacOS":
             imagename = inputs.itemById('imagename').value
             targetFolder = inputs.itemById('targetFolder').value
