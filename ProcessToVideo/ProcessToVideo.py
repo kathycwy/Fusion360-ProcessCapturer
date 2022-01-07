@@ -139,7 +139,6 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         if operatingPlatform == "Windows":
             videoname = inputs.itemById('videoname').value
             targetFolder = inputs.itemById('targetFolder').text
-            ui.messageBox(targetFolder)
             #rotate = inputs.itemById('rotate').value
             skip = inputs.itemById('skip').value
             # background = inputs.itemById('background').value
@@ -174,20 +173,23 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 out.write(img_array[i])
             out.release()
 
-            # Display finish message
-            ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
-
+            play_video = ui.messageBox('Play the video ?', 'This is a message box', 3, 1)
+            ui.messageBox(str(play_video))
             #Display video
-            cap = cv2.VideoCapture(name)
-            fps= int(cap.get(cv2.CAP_PROP_FPS))
-            while(True):
-                ret, frame = cap.read()
-                time.sleep(1/fps)
-                cv2.imshow('Frame', frame)
-                if cv2.waitKey(25) & 0xFF == ord('q'):
-                    break  
-            cap.release()
-            cv2.destroyAllWindows()
+            if(play_video == 2) :
+                cap = cv2.VideoCapture(name)
+                fps= int(cap.get(cv2.CAP_PROP_FPS))
+                while(True):
+                    ret, frame = cap.read()
+                    time.sleep(1/fps)
+                    cv2.imshow('Frame', frame)
+                    if cv2.waitKey(25) & 0xFF == ord('q'):
+                        break  
+                cap.release()
+                cv2.destroyAllWindows()
+            else :
+                # Display finish message
+                ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
 
           
         if operatingPlatform == "MacOS":
