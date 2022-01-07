@@ -79,6 +79,13 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, '', False)
             # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
             skip = inputs.addBoolValueInput('skip', 'Skip steps?', True, '')
+            camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
+            views = camera_view.listItems
+            views.add('Front View', True, '')
+            views.add('Top View', False, '')
+            views.add('Right View', False, '')
+            views.add('Left View', False, '')
+            views.add('Back View', False, '')
             # background = inputs.addBoolValueInput('background', 'Add background?', True, '')
             # range_start = inputs.addTextBoxCommandInput('range_start', 'Range start', '', 1, False)
             # range_end = inputs.addTextBoxCommandInput('range_end', 'Range end', '', 1, False)
@@ -125,6 +132,22 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 else:
                     return
 
+        if changedInput.id == 'camera_view':
+            cameraView = changedInput.selectedItem.name
+            camera = app.activeViewport.camera
+            if(cameraView == 'TopViewOrientation'):
+                camera.viewOrientation = adsk.core.ViewOrientations.TopViewOrientation
+            elif(cameraView == 'FrontViewOrientation'):
+                camera.viewOrientation = adsk.core.ViewOrientations.FrontViewOrientation
+            elif(cameraView == 'LeftViewOrientation'):
+                camera.viewOrientation = adsk.core.ViewOrientations.LeftViewOrientation
+            elif(cameraView == 'RightViewOrientation'):
+                camera.viewOrientation = adsk.core.ViewOrientations.RightViewOrientation
+            elif(cameraView == 'BackViewOrientation'):
+                camera.viewOrientation = adsk.core.ViewOrientations.BackViewOrientation
+            camera.isFitView = True
+            app.activeViewport.camera = camera
+
 # Event handler for the execute event
 class CommandExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -135,6 +158,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         # Get the user inputs
         inputs = eventArgs.command.commandInputs
         operatingPlatform = getPlatform()
+        
 
         if operatingPlatform == "Windows":
             videoname = inputs.itemById('videoname').value
@@ -144,7 +168,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             # background = inputs.itemById('background').value
             # start = inputs.itemById('range').valueOne
             # end = inputs.itemById('range').valueTwo
-
+            
             #Save image
             count = timeline_var.count + 1 
             timeline_var.moveToBeginning()
@@ -174,7 +198,6 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             out.release()
 
             play_video = ui.messageBox('Play the video ?', 'This is a message box', 3, 1)
-            ui.messageBox(str(play_video))
             #Display video
             if(play_video == 2) :
                 cap = cv2.VideoCapture(name)
