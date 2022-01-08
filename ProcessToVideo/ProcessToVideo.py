@@ -79,6 +79,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, '', False)
             # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
             skip = inputs.addBoolValueInput('skip', 'Skip steps?', True, '')
+            grid = inputs.addBoolValueInput('grid', 'Remove grid?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
             views.add('Front View', True, '')
@@ -131,6 +132,12 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                     inputs.itemById('targetFolder').text = folderDlg.folder
                 else:
                     return
+
+        if changedInput.id == 'grid':
+            if isGridDisplayOn ():
+                setGridDisplay (False)
+            else:
+                setGridDisplay (True)
 
         if changedInput.id == 'camera_view':
             cameraView = changedInput.selectedItem.name
@@ -219,6 +226,32 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             imagename = inputs.itemById('imagename').value
             targetFolder = inputs.itemById('targetFolder').value
 
+def isGridDisplayOn ():
+    app = adsk.core.Application.get ()
+    ui = app.userInterface
+
+    cmdDef = ui.commandDefinitions.itemById ('ViewLayoutGridCommand')
+    listCntrlDef = adsk.core.ListControlDefinition.cast (cmdDef.controlDefinition)
+    layoutGridItem = listCntrlDef.listItems.item (0)
+    
+    if layoutGridItem.isSelected:
+        return True
+    else:
+        return False
+    
+
+def setGridDisplay (turnOn):
+    app = adsk.core.Application.get ()
+    ui = app.userInterface
+
+    cmdDef = ui.commandDefinitions.itemById ('ViewLayoutGridCommand')
+    listCntrlDef = adsk.core.ListControlDefinition.cast (cmdDef.controlDefinition)
+    layoutGridItem = listCntrlDef.listItems.item (0)
+    
+    if turnOn:
+        layoutGridItem.isSelected = True
+    else:
+        layoutGridItem.isSelected = False   
 
 def saveImage(entity,targetFolder,timeline_step,frame,filename):
     timeline_names.append(timeline_step)
