@@ -76,7 +76,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             grid = inputs.addBoolValueInput('grid', 'Remove grid?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
-            views.add('Front View', True, '')
+            views.add('Current View', True, '')
+            views.add('Front View', False, '')
             views.add('Top View', False, '')
             views.add('Right View', False, '')
             views.add('Left View', False, '')
@@ -137,15 +138,15 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
         if changedInput.id == 'camera_view':
             cameraView = changedInput.selectedItem.name
             camera = app.activeViewport.camera
-            if(cameraView == 'TopViewOrientation'):
+            if(cameraView == 'Top View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.TopViewOrientation
-            elif(cameraView == 'FrontViewOrientation'):
+            elif(cameraView == 'Front View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.FrontViewOrientation
-            elif(cameraView == 'LeftViewOrientation'):
+            elif(cameraView == 'Left View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.LeftViewOrientation
-            elif(cameraView == 'RightViewOrientation'):
+            elif(cameraView == 'Right View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.RightViewOrientation
-            elif(cameraView == 'BackViewOrientation'):
+            elif(cameraView == 'Back View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.BackViewOrientation
             camera.isFitView = True
             app.activeViewport.camera = camera
