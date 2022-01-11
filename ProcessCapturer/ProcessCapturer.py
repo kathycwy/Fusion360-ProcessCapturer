@@ -70,10 +70,10 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         if operatingPlatform == "Windows":
             filename = inputs.addStringValueInput('videoname', 'Video name')
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, '', False)
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
             # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
-            skip = inputs.addBoolValueInput('skip', 'Skip steps?', True, '')
-            grid = inputs.addBoolValueInput('grid', 'Remove grid?', True, '')
+            skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
+            grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
             views.add('Current View', True, '')
@@ -92,6 +92,16 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             filename = inputs.addStringValueInput('imagename', 'Image name')
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
+            skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
+            grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
+            camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
+            views = camera_view.listItems
+            views.add('Current View', True, '')
+            views.add('Front View', False, '')
+            views.add('Top View', False, '')
+            views.add('Right View', False, '')
+            views.add('Left View', False, '')
+            views.add('Back View', False, '')
 
         # Connect to the inputChanged event
         onInputChanged = CommandInputChangedHandler()
@@ -184,7 +194,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 timeline_step = type(entity).__name__
 
                 if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
-                    if skip==True:
+                    if skip == True:
                         continue
                     else:
                         size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename) 
@@ -221,7 +231,23 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         if operatingPlatform == "MacOS":
             imagename = inputs.itemById('imagename').value
             targetFolder = inputs.itemById('targetFolder').text
-            saveImgForMac(imagename, targetFolder)
+            skip = inputs.itemById('skip').value
+
+            count = timeline_var.count
+            timeline_var.moveToBeginning()
+
+            for index in range(1, count+1) :
+                #Take screenshot of timeline step and save it in specified path
+                filename = os.path.join(targetFolder, imagename+"%s" % index)
+                filenames.append("%s.png" % filename)
+                entity = timeline_var.item(index-1).entity        
+                timeline_step = type(entity).__name__
+                if skip == True:
+                    if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
+                        returnValue = timeline_var.movetoNextStep()
+                        continue
+                saveImgForMac(filename, targetFolder)
+
             # Display finish message
             ui.messageBox(str(timeline_var.count) + ' snapshots are saved to [' + targetFolder + '].')
 
@@ -234,6 +260,8 @@ def isGridDisplayOn ():
     listCntrlDef = adsk.core.ListControlDefinition.cast (cmdDef.controlDefinition)
     layoutGridItem = listCntrlDef.listItems.item (0)
     
+    print('isGridDisplayOn', layoutGridItem.isSelected)
+
     if layoutGridItem.isSelected:
         return True
     else:
@@ -278,18 +306,10 @@ def saveImageForWindows(entity,targetFolder,timeline_step,frame,filename):
     return size
 
 
-def saveImgForMac(imagename, targetFolder):
+def saveImgForMac(filename, targetFolder):
     # Save image
-    count = timeline_var.count
-    filenames = []
-    timeline_var.moveToBeginning()
-    index = 1
-    while index <= count :
-        filename = os.path.join(targetFolder, imagename+"%s" % index)
-        filenames.append("%s.png" % filename)
-        returnValue = timeline_var.movetoNextStep()
-        app.activeViewport.saveAsImageFile(filename, 0, 0)  
-        index += 1
+    returnValue = timeline_var.movetoNextStep()
+    app.activeViewport.saveAsImageFile(filename, 0, 0)  
 
 
 
