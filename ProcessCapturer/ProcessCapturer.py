@@ -104,7 +104,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         #Define inputs for MacOS
         if operatingPlatform == "MacOS":
             filename = inputs.addStringValueInput('imagename', 'Image name')
-            htmlBtn = inputs.addBrowserCommandInput('htmlBtn', 'Save directory', './Resources/selectPathBrowserInput.html', 28, 28)
+            # htmlBtn = inputs.addBrowserCommandInput('htmlBtn', 'Save directory', './Resources/selectPathBrowserInput.html', 28, 28)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
@@ -267,7 +267,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 imageCount += 1
 
             # Display finish message
-            ui.messageBox(str(imageCount) + ' snapshots our of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
+            ui.messageBox(str(imageCount) + ' snapshots out of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
 
 
 def isGridDisplayOn ():
