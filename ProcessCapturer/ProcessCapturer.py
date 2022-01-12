@@ -250,11 +250,12 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             skip = inputs.itemById('skip').value
 
             count = timeline_var.count
+            imageCount = 1
             timeline_var.moveToBeginning()
 
             for index in range(1, count+1) :
                 #Take screenshot of timeline step and save it in specified path
-                filename = os.path.join(targetFolder, imagename+"%s" % index)
+                filename = os.path.join(targetFolder, imagename+"%s" % imageCount)
                 filenames.append("%s.png" % filename)
                 entity = timeline_var.item(index-1).entity        
                 timeline_step = type(entity).__name__
@@ -263,9 +264,10 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                         returnValue = timeline_var.movetoNextStep()
                         continue
                 saveImgForMac(filename, targetFolder)
+                imageCount += 1
 
             # Display finish message
-            ui.messageBox(str(timeline_var.count) + ' snapshots are saved to [' + targetFolder + '].')
+            ui.messageBox(str(imageCount) + ' snapshots our of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
 
 
 def isGridDisplayOn ():
@@ -387,8 +389,19 @@ def getOperations(entity):
 
 def stop(context):
     try:
-        addInsPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
-        addInsButton = addInsPanel.controls.itemById('processCapturerAddIn')       
+        # Delete button from ProcessCapturerPanel
+        pcPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
+        addInsButton = pcPanel.controls.itemById('processCapturerAddIn')       
+        if addInsButton:
+            addInsButton.deleteMe()
+        
+        cmdDef = ui.commandDefinitions.itemById('processCapturerAddIn')
+        if cmdDef:
+            cmdDef.deleteMe()
+
+        # Delete button from SolidScriptsAddinsPanel
+        scPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
+        addInsButton = scPanel.controls.itemById('processCapturerAddIn')       
         if addInsButton:
             addInsButton.deleteMe()
         
