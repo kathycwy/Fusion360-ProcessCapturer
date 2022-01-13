@@ -45,7 +45,7 @@ def run(context):
         cmdDef = ui.commandDefinitions.addButtonDefinition('processCapturerAddIn', 
                                                             'Process Capturer', 
                                                             'Convert your creation process into images/video',
-                                                            './Resources')        
+                                                            './Resources/icon')        
         # Add button to new ProcessCapturerPanel
         pcPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
         addInsButton = pcPanel.controls.addCommand(cmdDef)
@@ -83,8 +83,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         #Define inputs for Windows
         if operatingPlatform == "Windows":
             filename = inputs.addStringValueInput('videoname', 'Video name')
-            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
+            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
             # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
             grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
@@ -104,9 +104,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         #Define inputs for MacOS
         if operatingPlatform == "MacOS":
             filename = inputs.addStringValueInput('imagename', 'Image name')
-            # htmlBtn = inputs.addBrowserCommandInput('htmlBtn', 'Save directory', './Resources/selectPathBrowserInput.html', 28, 28)
-            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', '', 1, False)
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select', False, '', False)
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
+            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
             grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
@@ -328,7 +327,6 @@ def saveImgForMac(filename, targetFolder):
     # Save image
     returnValue = timeline_var.movetoNextStep()
     app.activeViewport.saveAsImageFile(filename, 0, 0)  
-
 
 
 def getPlatform():
