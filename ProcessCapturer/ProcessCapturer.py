@@ -73,16 +73,18 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
         # Get the command
         cmd = eventArgs.command
+        cmd.setDialogMinimumSize(600,300)
+        cmd.setDialogInitialSize(600,300)
 
         # Get the CommandInputs collection to create new command inputs          
         inputs = cmd.commandInputs
-    
+        
         global operatingPlatform 
         operatingPlatform = getPlatform()
       
         #Define inputs for Windows
         if operatingPlatform == "Windows":
-            filename = inputs.addStringValueInput('videoname', 'Video name')
+            filename = inputs.addStringValueInput('videoname', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
@@ -103,7 +105,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
         #Define inputs for MacOS
         if operatingPlatform == "MacOS":
-            filename = inputs.addStringValueInput('imagename', 'Image name')
+            filename = inputs.addStringValueInput('imagename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
@@ -228,9 +230,11 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 while(True):
                     ret, frame = cap.read()
                     time.sleep(1/fps)
-                    cv2.imshow('Frame', frame)
+                    cv2.imshow(videoname, frame)
                     if cv2.waitKey(25) & 0xFF == ord('q'):
                         break  
+                    if cv2.getWindowProperty('Frame',cv2.WND_PROP_VISIBLE) < 1:    
+                        break    
                 cap.release()
                 cv2.destroyAllWindows()
             else :
