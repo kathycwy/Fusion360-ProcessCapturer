@@ -85,8 +85,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             filename = inputs.addStringValueInput('videoname', 'Video name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
-            # rotate = inputs.addBoolValueInput('rotate', 'Rotate Design?', True, '')
             skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
+            text = inputs.addBoolValueInput('text', 'Add Text?', True, '')
             grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
@@ -190,11 +190,8 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         if operatingPlatform == "Windows":
             videoname = inputs.itemById('videoname').value
             targetFolder = inputs.itemById('targetFolder').text
-            #rotate = inputs.itemById('rotate').value
             skip = inputs.itemById('skip').value
-            # background = inputs.itemById('background').value
-            # start = inputs.itemById('range').valueOne
-            # end = inputs.itemById('range').valueTwo
+            text = inputs.itemById('text').value
             
             #Save image
             count = timeline_var.count + 1 
@@ -207,14 +204,12 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 filenames.append("%s.png" % filename)   
                 entity = timeline_var.item(index-1).entity        
                 timeline_step = type(entity).__name__
-
-                if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
-                    if skip == True:
+ 
+                if skip == True:
+                    if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
+                        returnValue = timeline_var.movetoNextStep()
                         continue
-                    else:
-                        size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename) 
-                else:
-                    size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename)    
+                size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename,text)    
         
             import cv2
 
@@ -299,7 +294,7 @@ def setGridDisplay (turnOn):
         layoutGridItem.isSelected = False   
 
 
-def saveImageForWindows(entity,targetFolder,timeline_step,frame,filename):
+def saveImageForWindows(entity,targetFolder,timeline_step,frame,filename,text):
     timeline_names.append(timeline_step)
     timeline_operation = getOperations(entity)
     operations.append(timeline_operation)
@@ -313,8 +308,9 @@ def saveImageForWindows(entity,targetFolder,timeline_step,frame,filename):
     path = '%s' % targetFolder+'/%s' % frame+'.png'
     img = cv2.imread(path)      
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(img, '%s' % timeline_step, (10,400), font, 3, (0, 0, 0), 2, cv2.LINE_AA) 
-    cv2.putText(img, '%s' % timeline_operation, (10,450), font, 2, (0, 0, 0), 2, cv2.LINE_AA) 
+    if(text == True):
+        cv2.putText(img, '%s' % timeline_step, (10,400), font, 3, (0, 0, 0), 2, cv2.LINE_AA) 
+        cv2.putText(img, '%s' % timeline_operation, (10,450), font, 2, (0, 0, 0), 2, cv2.LINE_AA) 
     cv2.imwrite(path, img)
     height, width, layers = img.shape
     size = (width,height)
