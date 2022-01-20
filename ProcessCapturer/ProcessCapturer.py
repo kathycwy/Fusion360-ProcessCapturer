@@ -1,20 +1,18 @@
-#Author-Wingyin Chan, Sai Limaye
-#Description-Convert your creation process into images/video
+# Author - Wingyin Chan, Sai Limaye
+# Description - Convert your creation process into images/video
 
-from ast import Constant, Global
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os,sys
 import time
-import json
 
-#get the path of add-in
+# Get the path of add-in
 my_addin_path = os.path.dirname(os.path.realpath(__file__)) 
 
-#add the path to the searchable path collection
+# Add the path to the searchable path collection
 if not my_addin_path in sys.path:
     sys.path.append(my_addin_path) 
 
-# Global list to keep all event handlers in scope
+# Global lists to keep all event handlers and variables in scope
 handlers = []
 filenames = []
 timeline_names = []
@@ -31,10 +29,9 @@ def run(context):
         design = adsk.fusion.Design.cast(product)
         timeline_var = design.timeline
   
+        # Create new tab tbPanel in toolbar 
         workSpace = ui.workspaces.itemById('FusionSolidEnvironment')
         tbPanels = workSpace.toolbarPanels
-
-        global tbPanel
         pcPanel = tbPanels.itemById('ProcessCapturerPanel')
         if pcPanel:
             pcPanel.deleteMe()
@@ -43,19 +40,21 @@ def run(context):
         # Get the CommandDefinitions collection
         cmdDefs = ui.commandDefinitions
         
-        # Create a command definition and add a button to the Add-ins panel.
+        # Create command definition for our add-in
         cmdDef = ui.commandDefinitions.addButtonDefinition('processCapturerAddIn', 
                                                             'Process Capturer', 
                                                             'Convert your creation process into images/video',
                                                             './Resources/icon')        
+       
         # Add button to new ProcessCapturerPanel
         pcPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
         addInsButton = pcPanel.controls.addCommand(cmdDef)
+
         # Add button to original SolidScriptsAddinsPanel
         addInsPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
         addInsButton = addInsPanel.controls.addCommand(cmdDef)
         
-        # Connect to the command created event.
+        # Connect to the commandCreated event.
         onCommandCreated = CommandCreatedEventHandler()
         cmdDef.commandCreated.add(onCommandCreated)
         handlers.append(onCommandCreated)
@@ -65,6 +64,8 @@ def run(context):
             ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
 
+######################################## FUSION EVENT HANDLERS ########################################
+
 # Event handler for the commandCreated event
 class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
@@ -72,7 +73,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         eventArgs = adsk.core.CommandCreatedEventArgs.cast(args)
 
-        # Get the command
+        # Get and set the command 
         cmd = eventArgs.command
         cmd.setDialogMinimumSize(600,300)
         cmd.setDialogInitialSize(600,300)
@@ -88,10 +89,11 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         global operatingPlatform 
         operatingPlatform = getPlatform()
 
+        # Save the current camera view for later restoring
         global currentCamera
         currentCamera = app.activeViewport.camera
       
-        #Define inputs for Windows
+        # Define inputs for Windows
         if operatingPlatform == "Windows":
             filename = inputs.addStringValueInput('filename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
@@ -113,8 +115,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             # range_start = inputs.addTextBoxCommandInput('range_start', 'Range start', '', 1, False)
             # range_end = inputs.addTextBoxCommandInput('range_end', 'Range end', '', 1, False)
 
-
-        #Define inputs for MacOS
+        # Define inputs for MacOS
         elif operatingPlatform == "MacOS":
             filename = inputs.addStringValueInput('filename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
@@ -131,12 +132,10 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             views.add('Left View', False, '')
             views.add('Back View', False, '')
 
-        # end the add-in when the OS is not supporting
+        # End the add-in when the OS is not supporting
         else:
             return
 
-
-        global handlers
         # Connect to the inputChanged event
         onInputChanged = CommandInputChangedHandler()
         cmd.inputChanged.add(onInputChanged)
@@ -164,13 +163,12 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
         changedInput = eventArgs.input
         inputs = eventArgs.firingEvent.sender.commandInputs
     
-        # Check if select folder button is selected
+        # Check if select folder button is clicked
         if changedInput.id == 'selectFolderBtn':
             if inputs.itemById('selectFolderBtn').value:
                 # Set styles of file dialog.
                 folderDlg = ui.createFolderDialog()
                 folderDlg.title = 'Fusion Choose Folder Dialog' 
-                
                 # Show folder dialog
                 dlgResult = folderDlg.showDialog()
                 if dlgResult == adsk.core.DialogResults.DialogOK:
@@ -178,13 +176,14 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 else:
                     return
 
+        # Check if remove grids is selected
         if changedInput.id == 'grid':
             if isGridDisplayOn ():
                 setGridDisplay (False)
             else:
                 setGridDisplay (True)
 
-
+        # Check if camera view is changed
         if changedInput.id == 'camera_view':
             cameraView = changedInput.selectedItem.name
             camera = app.activeViewport.camera
@@ -204,13 +203,14 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
             app.activeViewport.camera = camera
 
 
+# Event handler for the ValidateInputs event
 class ValidateInputsHandler(adsk.core.ValidateInputsEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args: adsk.core.ValidateInputsEventArgs):
         
+        # Get the validating input arguments
         eventArgs = adsk.core.ValidateInputsEventArgs.cast(args)
-
         filename = eventArgs.inputs.itemById("filename")
         if not filename:
             return
@@ -218,6 +218,7 @@ class ValidateInputsHandler(adsk.core.ValidateInputsEventHandler):
         if not filepath:
             return
 
+        # Enable OK button only if both filename and filepath are not empty
         if (filename.value and filepath.text != "No folder is selected"):
             # OK button enabled
             eventArgs.areInputsValid = True
@@ -235,26 +236,25 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
    
         # Get the user inputs
         inputs = eventArgs.command.commandInputs
-        
 
+        # Take snapshots and convert into video for Windows
         if operatingPlatform == "Windows":
             filename = inputs.itemById('filename').value
             targetFolder = inputs.itemById('targetFolder').text
             skip = inputs.itemById('skip').value
             text = inputs.itemById('text').value
             
-            #Save image
+            # Save image
             count = timeline_var.count + 1 
             timeline_var.moveToBeginning()
 
             for index in range(1, count) :
-                #Take screenshot of timeline step and save it in specified path
+                # Take screenshot of timeline step and save it in specified path
                 frame = "frame%s" % index
                 filename = os.path.join(targetFolder, frame)
                 filenames.append("%s.png" % filename)   
                 entity = timeline_var.item(index-1).entity        
                 timeline_step = type(entity).__name__
- 
                 if skip == True:
                     if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
                         returnValue = timeline_var.movetoNextStep()
@@ -263,7 +263,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         
             import cv2
 
-            #Create video and save in target folder
+            # Create video and save in target folder
             name = targetFolder+'/'+filename+'.mp4'
             out = cv2.VideoWriter(name,cv2.VideoWriter_fourcc(*'DIVX'), 1, size)
             for i in range(len(img_array)):
@@ -271,7 +271,8 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             out.release()
 
             play_video = ui.messageBox('Play the video ?', 'This is a message box', 3, 1)
-            #Display video
+
+            # Display video
             if(play_video == 2) :
                 cap = cv2.VideoCapture(name)
                 fps= int(cap.get(cv2.CAP_PROP_FPS))
@@ -289,7 +290,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 # Display finish message
                 ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+filename+'.mp4 is saved to [' + targetFolder + '].')
 
-          
+        # Take snapshots only for MacOS
         if operatingPlatform == "MacOS":
             filename = inputs.itemById('filename').value
             targetFolder = inputs.itemById('targetFolder').text
@@ -300,7 +301,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             timeline_var.moveToBeginning()
 
             for index in range(1, count+1) :
-                #Take screenshot of timeline step and save it in specified path
+                # Take screenshot of timeline step and save it in specified path
                 finalFilename = os.path.join(targetFolder, filename+"%s" % (imageCount+1))
                 filenames.append("%s.png" % finalFilename)
                 entity = timeline_var.item(index-1).entity        
@@ -320,6 +321,10 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
 
         setGridDisplay(True)
 
+######################################## FUSION EVENT HANDLERS ########################################
+
+
+################################### SELF-DEFINED HELIPING FUNCTIONS ###################################
 
 def isGridDisplayOn ():
     app = adsk.core.Application.get ()
@@ -361,7 +366,7 @@ def saveImageForWindows(entity,targetFolder,timeline_step,frame,filename,text):
 
     import cv2
 
-    #Add timeline step text to image
+    # Add timeline step text to image
     path = '%s' % targetFolder+'/%s' % frame+'.png'
     img = cv2.imread(path)      
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -383,7 +388,7 @@ def saveImgForMac(filename, targetFolder):
 
 
 def getPlatform():
-    #Check OS
+    # Check OS
     from sys import platform
     if platform == "linux" or platform == "linux2":
         ui.messageBox('Sorry this add-in does not support Linux system.')
@@ -398,6 +403,7 @@ def getPlatform():
     return "error"
 
 
+# Get operation description of each step in timeline
 def getOperations(entity):
     classname = type(entity).__name__
     param = ''
@@ -438,26 +444,25 @@ def getOperations(entity):
 
     return param
 
-       
+################################### SELF-DEFINED HELIPING FUNCTIONS ###################################
+    
 
 def stop(context):
     try:
-        # Delete button from ProcessCapturerPanel
+        # Delete button and command definition from ProcessCapturerPanel
         pcPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
         addInsButton = pcPanel.controls.itemById('processCapturerAddIn')       
         if addInsButton:
             addInsButton.deleteMe()
-        
         cmdDef = ui.commandDefinitions.itemById('processCapturerAddIn')
         if cmdDef:
             cmdDef.deleteMe()
 
-        # Delete button from SolidScriptsAddinsPanel
+        # Delete button and command definition from SolidScriptsAddinsPanel
         scPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
         addInsButton = scPanel.controls.itemById('processCapturerAddIn')       
         if addInsButton:
             addInsButton.deleteMe()
-        
         cmdDef = ui.commandDefinitions.itemById('processCapturerAddIn')
         if cmdDef:
             cmdDef.deleteMe()
