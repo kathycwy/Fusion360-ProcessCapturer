@@ -1,6 +1,7 @@
 #Author-Wingyin Chan, Sai Limaye
 #Description-Convert your creation process into images/video
 
+from ast import Constant, Global
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os,sys
 import time
@@ -19,6 +20,7 @@ filenames = []
 timeline_names = []
 img_array = []
 operations = []
+
 
 def run(context):
     try:
@@ -57,7 +59,6 @@ def run(context):
         onCommandCreated = CommandCreatedEventHandler()
         cmdDef.commandCreated.add(onCommandCreated)
         handlers.append(onCommandCreated)
-        
 
     except:
         if ui:
@@ -78,21 +79,31 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
         # Get the CommandInputs collection to create new command inputs          
         inputs = cmd.commandInputs
+
+        # Print msg then end the add-in when the design is empty
+        if timeline_var.count == 0:
+            ui.messageBox("Your design is empty, nothing can be captured. Please create a model then try our capturer again.")
+            return
         
         global operatingPlatform 
         operatingPlatform = getPlatform()
+
+        global currentCamera
+        currentCamera = app.activeViewport.camera
       
         #Define inputs for Windows
         if operatingPlatform == "Windows":
-            filename = inputs.addStringValueInput('videoname', 'Name')
+            filename = inputs.addStringValueInput('filename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
-            skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
+            skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
+            skip.tooltip = "Skip the steps when the following operations: \nSketch/ConstructionPlane/ConstructionPoint/ConstructionAxis\n/ThreadFeature'/Combine'/Occurrence are performed, \nsince they make no visible changes to the model."
             text = inputs.addBoolValueInput('text', 'Add Text?', True, '')
-            grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
+            text.tooltip = "Add opeartion description text on each frame"
+            grid = inputs.addBoolValueInput('grid', 'Remove grids?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
-            views.add('Current View', True, '')
+            views.add('Initial View', True, '')
             views.add('Front View', False, '')
             views.add('Top View', False, '')
             views.add('Right View', False, '')
@@ -104,36 +115,49 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
 
         #Define inputs for MacOS
-        if operatingPlatform == "MacOS":
-            filename = inputs.addStringValueInput('imagename', 'Name')
+        elif operatingPlatform == "MacOS":
+            filename = inputs.addStringValueInput('filename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
-            skip = inputs.addBoolValueInput('skip', 'Skip non-visible steps?', True, '')
-            grid = inputs.addBoolValueInput('grid', 'Remove/Add grid?', True, '')
+            skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
+            skip.tooltip = "Skip the steps when the following operations: \nSketch/ConstructionPlane/ConstructionPoint/ConstructionAxis\n/ThreadFeature'/Combine'/Occurrence are performed, \nsince they make no visible changes to the model."
+            grid = inputs.addBoolValueInput('grid', 'Remove grids?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
-            views.add('Current View', True, '')
+            views.add('Initial View', True, '')
             views.add('Front View', False, '')
             views.add('Top View', False, '')
             views.add('Right View', False, '')
             views.add('Left View', False, '')
             views.add('Back View', False, '')
 
+        # end the add-in when the OS is not supporting
+        else:
+            return
+
+
+        global handlers
         # Connect to the inputChanged event
         onInputChanged = CommandInputChangedHandler()
         cmd.inputChanged.add(onInputChanged)
         handlers.append(onInputChanged)
+
+        # Connect to the ValidateInputsHandler
+        onValidateInputs = ValidateInputsHandler()
+        cmd.validateInputs.add(onValidateInputs)
+        handlers.append(onValidateInputs)
 
         # Connect to the execute event
         onExecute = CommandExecuteHandler()
         cmd.execute.add(onExecute)
         handlers.append(onExecute)
 
+
 # Event handler for the inputChanged event
 class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
         super().__init__()
-    def notify(self, args):
+    def notify(self, args: adsk.core.ValidateInputsEventArgs):
         eventArgs = adsk.core.InputChangedEventArgs.cast(args)
         
         # Get the changed input
@@ -164,7 +188,9 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
         if changedInput.id == 'camera_view':
             cameraView = changedInput.selectedItem.name
             camera = app.activeViewport.camera
-            if(cameraView == 'Top View'):
+            if(cameraView == 'Initial View'):
+                camera = currentCamera
+            elif(cameraView == 'Top View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.TopViewOrientation
             elif(cameraView == 'Front View'):
                 camera.viewOrientation = adsk.core.ViewOrientations.FrontViewOrientation
@@ -176,6 +202,28 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 camera.viewOrientation = adsk.core.ViewOrientations.BackViewOrientation
             camera.isFitView = True
             app.activeViewport.camera = camera
+
+
+class ValidateInputsHandler(adsk.core.ValidateInputsEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args: adsk.core.ValidateInputsEventArgs):
+        
+        eventArgs = adsk.core.ValidateInputsEventArgs.cast(args)
+
+        filename = eventArgs.inputs.itemById("filename")
+        if not filename:
+            return
+        filepath = eventArgs.inputs.itemById("targetFolder")
+        if not filepath:
+            return
+
+        if (filename.value and filepath.text != "No folder is selected"):
+            # OK button enabled
+            eventArgs.areInputsValid = True
+        else:
+            # OK button disabled
+            eventArgs.areInputsValid = False
 
 
 # Event handler for the execute event
@@ -190,7 +238,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
         
 
         if operatingPlatform == "Windows":
-            videoname = inputs.itemById('videoname').value
+            filename = inputs.itemById('filename').value
             targetFolder = inputs.itemById('targetFolder').text
             skip = inputs.itemById('skip').value
             text = inputs.itemById('text').value
@@ -216,7 +264,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             import cv2
 
             #Create video and save in target folder
-            name = targetFolder+'/'+videoname+'.mp4'
+            name = targetFolder+'/'+filename+'.mp4'
             out = cv2.VideoWriter(name,cv2.VideoWriter_fourcc(*'DIVX'), 1, size)
             for i in range(len(img_array)):
                 out.write(img_array[i])
@@ -230,7 +278,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 while(True):
                     ret, frame = cap.read()
                     time.sleep(1/fps)
-                    cv2.imshow(videoname, frame)
+                    cv2.imshow(filename, frame)
                     if cv2.waitKey(25) & 0xFF == ord('q'):
                         break  
                     if cv2.getWindowProperty('Frame',cv2.WND_PROP_VISIBLE) < 1:    
@@ -239,33 +287,38 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                 cv2.destroyAllWindows()
             else :
                 # Display finish message
-                ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
+                ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+filename+'.mp4 is saved to [' + targetFolder + '].')
 
           
         if operatingPlatform == "MacOS":
-            imagename = inputs.itemById('imagename').value
+            filename = inputs.itemById('filename').value
             targetFolder = inputs.itemById('targetFolder').text
             skip = inputs.itemById('skip').value
 
             count = timeline_var.count
-            imageCount = 1
+            imageCount = 0
             timeline_var.moveToBeginning()
 
             for index in range(1, count+1) :
                 #Take screenshot of timeline step and save it in specified path
-                filename = os.path.join(targetFolder, imagename+"%s" % imageCount)
-                filenames.append("%s.png" % filename)
+                finalFilename = os.path.join(targetFolder, filename+"%s" % (imageCount+1))
+                filenames.append("%s.png" % finalFilename)
                 entity = timeline_var.item(index-1).entity        
                 timeline_step = type(entity).__name__
                 if skip == True:
                     if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
                         returnValue = timeline_var.movetoNextStep()
                         continue
-                saveImgForMac(filename, targetFolder)
+                saveImgForMac(finalFilename, targetFolder)
                 imageCount += 1
 
             # Display finish message
-            ui.messageBox(str(imageCount) + ' snapshots out of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
+            if imageCount != 0:
+                ui.messageBox(str(imageCount) + ' snapshots out of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
+            else:
+                ui.messageBox("All steps in timeline are skipped. No snapshot is taken.")
+
+        setGridDisplay(True)
 
 
 def isGridDisplayOn ():
@@ -336,12 +389,14 @@ def getPlatform():
         ui.messageBox('Sorry this add-in does not support Linux system.')
         return "Linux"
     elif platform == "darwin":
-        ui.messageBox("Only capturing timetine objects to snapshots is supported on MacOS.\nFor details please check our user manual at https://git.rwth-aachen.de/wingyin97606/mcp-group3.", "Limited features on MacOS", 0, 2)
+        msg = '<span>Only capturing timetine objects to snapshots is supported on MacOS.<br>For details please check our user manual at </span><a href="https://git.rwth-aachen.de/wingyin97606/mcp-group3">https://git.rwth-aachen.de/wingyin97606/mcp-group3</a><span>.</span>'
+        ui.messageBox(msg, "Limited features on MacOS", 0, 2)
         return "MacOS"
     elif platform == "win32":
         return "Windows"
     ui.messageBox("Sorry this add-in does not support your operating system.")
     return "error"
+
 
 def getOperations(entity):
     classname = type(entity).__name__
