@@ -95,13 +95,13 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
       
         # Define inputs for Windows
         if operatingPlatform == "Windows":
-            filename = inputs.addStringValueInput('filename', 'Name')
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
-            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
+            videoname = inputs.addStringValueInput('videoname', 'Name*')
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder*', False, './Resources/button', False)
+            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory*', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
             skip.tooltip = "Skip the steps when the following operations: \nSketch/ConstructionPlane/ConstructionPoint/ConstructionAxis\n/ThreadFeature'/Combine'/Occurrence are performed, \nsince they make no visible changes to the model."
-            text = inputs.addBoolValueInput('text', 'Add Text?', True, '')
-            text.tooltip = "Add opeartion description text on each frame"
+            text = inputs.addBoolValueInput('text', 'Add Operation Description?', True, '')
+            text.tooltip = "Add operation description text on each frame"
             grid = inputs.addBoolValueInput('grid', 'Remove grids?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
             views = camera_view.listItems
@@ -111,10 +111,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             views.add('Right View', False, '')
             views.add('Left View', False, '')
             views.add('Back View', False, '')
-            # background = inputs.addBoolValueInput('background', 'Add background?', True, '')
-            # range_start = inputs.addTextBoxCommandInput('range_start', 'Range start', '', 1, False)
-            # range_end = inputs.addTextBoxCommandInput('range_end', 'Range end', '', 1, False)
-
+           
         # Define inputs for MacOS
         elif operatingPlatform == "MacOS":
             filename = inputs.addStringValueInput('filename', 'Name')
@@ -150,6 +147,8 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         onExecute = CommandExecuteHandler()
         cmd.execute.add(onExecute)
         handlers.append(onExecute)
+
+        
 
 
 # Event handler for the inputChanged event
@@ -211,15 +210,15 @@ class ValidateInputsHandler(adsk.core.ValidateInputsEventHandler):
         
         # Get the validating input arguments
         eventArgs = adsk.core.ValidateInputsEventArgs.cast(args)
-        filename = eventArgs.inputs.itemById("filename")
-        if not filename:
+        videoname = eventArgs.inputs.itemById("videoname")
+        if not videoname:
             return
         filepath = eventArgs.inputs.itemById("targetFolder")
         if not filepath:
             return
 
         # Enable OK button only if both filename and filepath are not empty
-        if (filename.value and filepath.text != "No folder is selected"):
+        if (videoname.value and filepath.text != "No folder is selected"):
             # OK button enabled
             eventArgs.areInputsValid = True
         else:
@@ -239,7 +238,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
 
         # Take snapshots and convert into video for Windows
         if operatingPlatform == "Windows":
-            filename = inputs.itemById('filename').value
+            videoname = inputs.itemById('videoname').value
             targetFolder = inputs.itemById('targetFolder').text
             skip = inputs.itemById('skip').value
             text = inputs.itemById('text').value
@@ -264,32 +263,22 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             import cv2
 
             # Create video and save in target folder
-            name = targetFolder+'/'+filename+'.mp4'
+            name = targetFolder+'/'+videoname+'.mp4'
             out = cv2.VideoWriter(name,cv2.VideoWriter_fourcc(*'DIVX'), 1, size)
             for i in range(len(img_array)):
                 out.write(img_array[i])
             out.release()
 
+            # Display finish message
+            ui.messageBox('Process video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
+
             play_video = ui.messageBox('Play the video ?', 'This is a message box', 3, 1)
 
             # Display video
             if(play_video == 2) :
-                cap = cv2.VideoCapture(name)
-                fps= int(cap.get(cv2.CAP_PROP_FPS))
-                while(True):
-                    ret, frame = cap.read()
-                    time.sleep(1/fps)
-                    cv2.imshow(filename, frame)
-                    if cv2.waitKey(25) & 0xFF == ord('q'):
-                        break  
-                    if cv2.getWindowProperty('Frame',cv2.WND_PROP_VISIBLE) < 1:    
-                        break    
-                cap.release()
-                cv2.destroyAllWindows()
-            else :
-                # Display finish message
-                ui.messageBox(str(timeline_var.count) + ' snapshots are taken.\nProcess video '+filename+'.mp4 is saved to [' + targetFolder + '].')
-
+                from os import startfile
+                startfile(name)
+            
         # Take snapshots only for MacOS
         if operatingPlatform == "MacOS":
             filename = inputs.itemById('filename').value
