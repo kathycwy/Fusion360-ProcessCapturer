@@ -2,11 +2,11 @@
 	"autodeskProduct":	"Fusion360",
 	"type":	"addin",
 	"id":	"f34bac5b-361a-45e4-83d7-d8d583c54f51",
-	"author":	"",
+	"author":	"Wing Yin Chan, Sai Limaye",
 	"description":	{
-		"":	""
+		"":	"Convert your creation process into images/video"
 	},
-	"version":	"",
+	"version":	"1.0",
 	"runOnStartup":	false,
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true

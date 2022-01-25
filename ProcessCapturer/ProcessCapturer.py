@@ -41,9 +41,10 @@ def run(context):
         cmdDefs = ui.commandDefinitions
         
         # Create command definition for our add-in
+        buttonTooltip = '<img src=\"Resources/tooltip/tooltip.png\"><br><span>Convert your creation process into images/video</span>'
         cmdDef = ui.commandDefinitions.addButtonDefinition('processCapturerAddIn', 
                                                             'Process Capturer', 
-                                                            'Convert your creation process into images/video',
+                                                            buttonTooltip,
                                                             './Resources/icon')        
        
         # Add button to new ProcessCapturerPanel
@@ -58,6 +59,8 @@ def run(context):
         onCommandCreated = CommandCreatedEventHandler()
         cmdDef.commandCreated.add(onCommandCreated)
         handlers.append(onCommandCreated)
+
+        ui.messageBox('ProcessCapturer has been added under UTILITIES tab.')
 
     except:
         if ui:
@@ -100,7 +103,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory*', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
             skip.tooltip = "Skip the steps when the following operations: \nSketch/ConstructionPlane/ConstructionPoint/ConstructionAxis\n/ThreadFeature'/Combine'/Occurrence are performed, \nsince they make no visible changes to the model."
-            text = inputs.addBoolValueInput('text', 'Add Operation Description?', True, '')
+            text = inputs.addBoolValueInput('text', 'Add operation description?', True, '')
             text.tooltip = "Add operation description text on each frame"
             grid = inputs.addBoolValueInput('grid', 'Remove grids?', True, '')
             camera_view = inputs.addDropDownCommandInput('camera_view','Camera view',adsk.core.DropDownStyles.TextListDropDownStyle)
@@ -114,7 +117,7 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
            
         # Define inputs for MacOS
         elif operatingPlatform == "MacOS":
-            filename = inputs.addStringValueInput('filename', 'Name')
+            imagename = inputs.addStringValueInput('imagename', 'Name')
             selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
             targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
@@ -133,6 +136,11 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         else:
             return
 
+        # Connect to the commandDestroyed event.
+        onDestroy = CommandDestroyHandler()
+        cmd.destroy.add(onDestroy)
+        handlers.append(onDestroy)
+        
         # Connect to the inputChanged event
         onInputChanged = CommandInputChangedHandler()
         cmd.inputChanged.add(onInputChanged)
@@ -149,6 +157,13 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
         handlers.append(onExecute)
 
         
+# Event handler for the commandDestroyed event
+class CommandDestroyHandler(adsk.core.CommandEventHandler):
+    def _init_(self):
+        super()._init_()
+    def notify(self, args):
+
+        setGridDisplay(True)
 
 
 # Event handler for the inputChanged event
@@ -202,23 +217,24 @@ class CommandInputChangedHandler(adsk.core.InputChangedEventHandler):
             app.activeViewport.camera = camera
 
 
-# Event handler for the ValidateInputs event
 class ValidateInputsHandler(adsk.core.ValidateInputsEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args: adsk.core.ValidateInputsEventArgs):
         
-        # Get the validating input arguments
         eventArgs = adsk.core.ValidateInputsEventArgs.cast(args)
-        videoname = eventArgs.inputs.itemById("videoname")
-        if not videoname:
+
+        if operatingPlatform == "Windows":
+            filename = eventArgs.inputs.itemById("videoname")
+        if operatingPlatform == "MacOS":
+            filename = eventArgs.inputs.itemById("imagename")
+        if not filename:
             return
         filepath = eventArgs.inputs.itemById("targetFolder")
         if not filepath:
             return
 
-        # Enable OK button only if both filename and filepath are not empty
-        if (videoname.value and filepath.text != "No folder is selected"):
+        if (filename.value and filepath.text != "No folder is selected"):
             # OK button enabled
             eventArgs.areInputsValid = True
         else:
@@ -272,7 +288,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             # Display finish message
             ui.messageBox('Process video '+videoname+'.mp4 is saved to [' + targetFolder + '].')
 
-            play_video = ui.messageBox('Play the video ?', 'This is a message box', 3, 1)
+            play_video = ui.messageBox('Play the video ?', '', 3, 1)
 
             # Display video
             if(play_video == 2) :
@@ -281,7 +297,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             
         # Take snapshots only for MacOS
         if operatingPlatform == "MacOS":
-            filename = inputs.itemById('filename').value
+            filename = inputs.itemById('imagename').value
             targetFolder = inputs.itemById('targetFolder').text
             skip = inputs.itemById('skip').value
 
@@ -305,6 +321,12 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             # Display finish message
             if imageCount != 0:
                 ui.messageBox(str(imageCount) + ' snapshots out of ' + str(timeline_var.count) + ' steps are saved to [' + targetFolder + '].')
+                
+                open_folder = ui.messageBox('Open the folder ?', '', 3, 1)
+                # Open the folder
+                if(open_folder == 2) :
+                    import webbrowser
+                    webbrowser.open('file:///' + targetFolder)
             else:
                 ui.messageBox("All steps in timeline are skipped. No snapshot is taken.")
 
@@ -455,6 +477,9 @@ def stop(context):
         cmdDef = ui.commandDefinitions.itemById('processCapturerAddIn')
         if cmdDef:
             cmdDef.deleteMe()
+
+        ui.messageBox('ProcessCapturer has been stopped. Thank you for using!')
+
     except:
         if ui:
             ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
