@@ -1,6 +1,8 @@
 # Author - Wingyin Chan, Sai Limaye
 # Description - Convert your creation process into images/video
 
+import cmd
+from json import tool
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os,sys
 import time
@@ -41,11 +43,13 @@ def run(context):
         cmdDefs = ui.commandDefinitions
         
         # Create command definition for our add-in
-        buttonTooltip = '<img src=\"Resources/tooltip/tooltip.png\"><br><span>Convert your creation process into images/video</span>'
+        buttonTooltip = 'Convert your creation process into images/video'
         cmdDef = ui.commandDefinitions.addButtonDefinition('processCapturerAddIn', 
                                                             'Process Capturer', 
                                                             buttonTooltip,
-                                                            './Resources/icon')        
+                                                            './Resources/icon')  
+        tooltip = "./Resources/tooltip/tooltip.png"
+        cmdDef.toolClipFilename =  tooltip
        
         # Add button to new ProcessCapturerPanel
         pcPanel = ui.allToolbarPanels.itemById('ProcessCapturerPanel')
@@ -262,6 +266,7 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
             # Save image
             count = timeline_var.count + 1 
             timeline_var.moveToBeginning()
+            imageCount = 0
 
             for index in range(1, count) :
                 # Take screenshot of timeline step and save it in specified path
@@ -274,7 +279,12 @@ class CommandExecuteHandler(adsk.core.CommandEventHandler):
                     if timeline_step == 'Sketch' or timeline_step == 'ConstructionPlane' or timeline_step == 'ConstructionPoint' or timeline_step == 'ConstructionAxis' or timeline_step == 'ThreadFeature' or timeline_step == 'Combine' or timeline_step=='Occurrence':
                         returnValue = timeline_var.movetoNextStep()
                         continue
-                size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename,text)    
+                size = saveImageForWindows(entity,targetFolder,timeline_step,frame,filename,text)   
+                imageCount =+ 1 
+
+            if imageCount == 0:
+                ui.messageBox("All steps in timeline are skipped. No snapshot is taken.")
+
         
             import cv2
 
