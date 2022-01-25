@@ -1,8 +1,5 @@
 # ProcessCapturer
 
-
-## Description
-
 ProcessCapturer is a Fusion360 add-in which captures your created models and then converts them into images and video. Steps details can be shown on the generated media files which help illustrate the creation process. The add-in provides full functionalities on Windows and hence it is suggested to use it on Windows. Limited features are available on MacOS.
 
 &nbsp;
@@ -13,6 +10,8 @@ Due to the use of the external OpenCV library in ProcessCapturer, which is not f
 \
 **Running on Windows**: It is able to take snapshots from the users' design and then create a video out of these images, with step description texts displayed on each frame if desired. \
 **Running on MacOS**: Only taking snapshots with no special text added are available. 
+\
+For details please refer to our [user manual](manual.pdf).
 
 &nbsp;
 
