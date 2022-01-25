@@ -16,7 +16,6 @@ Due to the use of the external OpenCV library in ProcessCapturer, which is not f
 
 &nbsp;
 
-----------
 ## Installation
 
 ProcessCapturer runs on both Windows and MacOS devices. The installation procedures on both platforms are the same. Please download the ProcessCapturer source folder from before proceeding.
