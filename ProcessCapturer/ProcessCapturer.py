@@ -117,9 +117,9 @@ class CommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
            
         # Define inputs for MacOS
         elif operatingPlatform == "MacOS":
-            imagename = inputs.addStringValueInput('imagename', 'Name')
-            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder', False, './Resources/button', False)
-            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory', 'No folder is selected', 1, True)
+            imagename = inputs.addStringValueInput('imagename', 'Name*')
+            selectFolderBtn = inputs.addBoolValueInput('selectFolderBtn', 'Select folder*', False, './Resources/button', False)
+            targetFolder = inputs.addTextBoxCommandInput('targetFolder', 'Save directory*', 'No folder is selected', 1, True)
             skip = inputs.addBoolValueInput('skip', 'Skip identical snapshots?', True, '')
             skip.tooltip = "Skip the steps when the following operations: \nSketch/ConstructionPlane/ConstructionPoint/ConstructionAxis\n/ThreadFeature'/Combine'/Occurrence are performed, \nsince they make no visible changes to the model."
             grid = inputs.addBoolValueInput('grid', 'Remove grids?', True, '')
