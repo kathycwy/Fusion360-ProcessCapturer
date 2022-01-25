@@ -1,10 +1,10 @@
 {
 	"autodeskProduct":	"Fusion360",
 	"type":	"addin",
-	"id":	"7bba7a44-d89c-4078-a278-65b4bf380706",
-	"author":	"Wingyin Chan",
+	"id":	"f34bac5b-361a-45e4-83d7-d8d583c54f51",
+	"author":	"",
 	"description":	{
-		"":	"Convert your creation process into video"
+		"":	""
 	},
 	"version":	"",
 	"runOnStartup":	false,
